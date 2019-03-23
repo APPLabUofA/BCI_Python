@@ -13,6 +13,8 @@ from scipy.signal import butter, lfilter, lfilter_zi
 
 from pylsl import StreamInlet, resolve_stream # LSL python code
 
+import NFB_tools as NFBtool  # My own functions for code
+
 
 #==============================================================================
 #------------------------------------------------------------------------------
@@ -122,9 +124,25 @@ try:
         ch_data = np.array(eeg_data)[:, index_channel]
 
         # Update EEG buffer
-        eeg_buffer, filter_state = BCIw.update_buffer(
-                eeg_buffer, ch_data, notch=True,
+        eeg_buffer, filter_state = NFBtool.update_buffer(eeg_buffer, ch_data, notch=True,
                 filter_state=filter_state)
+        
+        
+        """ 3.2 COMPUTE FEATURES """
+            # Get newest samples from the buffer
+            data_epoch = NFBtool.get_last_data(eeg_buffer,
+                                            epoch_length * fs)
+
+            # Compute features
+            feat_vector = BCIw.compute_feature_vector(data_epoch, fs)
+            
+            feat_buffer, _ = NFBtool.update_buffer(feat_buffer,
+                                                np.asarray([feat_vector]))
+
+            """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
+            plotter_eeg.update_plot(eeg_buffer)
+            plotter_feat.update_plot(feat_buffer)
+            plt.pause(0.00001)
 
 
 
