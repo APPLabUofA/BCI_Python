@@ -16,6 +16,8 @@ import numpy as np
 
 from scipy.signal import butter, lfilter, lfilter_zi
 
+# Notch filter, but not sure what it is fitering
+NOTCH_B, NOTCH_A = butter(4, np.array([55, 65])/(256/2), btype='bandstop')
 
 
 #==============================================================================
@@ -126,7 +128,7 @@ def get_last_data(data_buffer, newest_samples):
     Obtains from "buffer_array" the "newest samples" (N rows from the
     bottom of the buffer)
     """
-    new_buffer = data_buffer[(data_buffer.shape[0] - newest_samples):, :]
+    new_buffer = data_buffer[int((data_buffer.shape[0] - newest_samples)):, :]
 
     return new_buffer
 

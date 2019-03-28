@@ -14,7 +14,9 @@ from scipy.signal import butter, lfilter, lfilter_zi
 
 from pylsl import StreamInlet, resolve_stream # LSL python code
 
-import NFB_tools as NFBt  # My own functions for code
+import matplotlib.pyplot as plt  # Module used for plotting
+
+import NFB_tools as NFBt  # My own (kinda) functions for code
 
 
 #==============================================================================
@@ -73,13 +75,17 @@ overlap_length = 0.2  #0.8
 shift_length = epoch_length - overlap_length
 
 # Index of the channel (electrode) to be used
-# 0 = left ear
-index_channel = [0, 1, 2, 3]
+# 0 = Oz, 3 = P3, 4 = C3, 5 = F3, 6 = Pz, 7 = Cz, 8 = Fz, 9 = P4, 10 = C4, 11 = F4,
+# 16 = HEOG, 17 = VEOG
+index_channel = [0, 6, 7, 8]
 
 # Name of our channel for plotting purposes
 ch_names = [ch_names[i] for i in index_channel]
 n_channels = len(index_channel)
 
+# Get names of features
+# ex. ['delta - CH1', 'pwr-theta - CH1', 'pwr-alpha - CH1',...]
+feature_names = NFBt.get_feature_names(ch_names)
 
 #//////////////////////////////////////////////////////////////////////////////
 #//////////////////////////////////////////////////////////////////////////////
@@ -93,6 +99,8 @@ filter_state = None  # for use with the notch filter
 n_win_test = int(np.floor((buffer_length - epoch_length) /
                           shift_length + 1))
 
+# Initialize the feature data buffer (for plotting)
+feat_buffer = np.zeros((n_win_test, len(feature_names)))
 
 # Initialize the plots
 plotter_eeg = NFBt.DataPlotter(fs * buffer_length, ch_names, fs)
@@ -129,24 +137,19 @@ try:
         
         
         """ 3.2 COMPUTE FEATURES """
-            # Get newest samples from the buffer
-            data_epoch = NFBt.get_last_data(eeg_buffer,
-                                            epoch_length * fs)
+        # Get newest samples from the buffer
+        data_epoch = NFBt.get_last_data(eeg_buffer, epoch_length * fs)
 
-            # Compute features
-            feat_vector = NFBt.compute_feature_vector(data_epoch, fs)
-            
-            feat_buffer, _ = NFBt.update_buffer(feat_buffer,
-                                                np.asarray([feat_vector]))
+        # Compute features
+        feat_vector = NFBt.compute_feature_vector(data_epoch, fs)
+        
+        feat_buffer, _ = NFBt.update_buffer(feat_buffer,
+                                            np.asarray([feat_vector]))
 
-            """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
-            plotter_eeg.update_plot(eeg_buffer)
-            plotter_feat.update_plot(feat_buffer)
-            plt.pause(0.00001)
-
-
-
-
+        """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
+        plotter_eeg.update_plot(eeg_buffer)
+        plotter_feat.update_plot(feat_buffer)
+        plt.pause(0.00001)
 
 
 except KeyboardInterrupt:    
