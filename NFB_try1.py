@@ -4,6 +4,7 @@
 Created on Tue Mar  5 11:09:36 2019
 
 """
+# Most code comes from bci_workshop
 
 from time import time
 
@@ -13,7 +14,7 @@ from scipy.signal import butter, lfilter, lfilter_zi
 
 from pylsl import StreamInlet, resolve_stream # LSL python code
 
-import NFB_tools as NFBtool  # My own functions for code
+import NFB_tools as NFBt  # My own functions for code
 
 
 #==============================================================================
@@ -22,10 +23,9 @@ import NFB_tools as NFBtool  # My own functions for code
 
 
 
-#//////////////////////////////////////////////////////////////////////////////
 # first resolve an EEG stream on the lab network
 print("looking for an EEG stream...")
-streams = resolve_stream('type', 'EEG', timeout=2)
+streams = resolve_stream('type', 'EEG')
 if len(streams) == 0:
         raise RuntimeError('Can\'t find EEG stream.')
 
@@ -61,13 +61,13 @@ fs = int(info.nominal_srate())
 
 # Length of the EEG data buffer (in seconds)
 # This buffer will hold last n seconds of data and be used for calculations
-buffer_length = 15
+buffer_length = 6  #15
 
 # Length of the epochs used to compute the FFT (in seconds)
-epoch_length = 1
+epoch_length = 0.4  #1
 
 # Amount of overlap between two consecutive epochs (in seconds)
-overlap_length = 0.8
+overlap_length = 0.2  #0.8
 
 # Amount to 'shift' the start of each next consecutive epoch
 shift_length = epoch_length - overlap_length
@@ -95,8 +95,8 @@ n_win_test = int(np.floor((buffer_length - epoch_length) /
 
 
 # Initialize the plots
-plotter_eeg = BCIw.DataPlotter(fs * buffer_length, ch_names, fs)
-plotter_feat = BCIw.DataPlotter(n_win_test, feature_names,
+plotter_eeg = NFBt.DataPlotter(fs * buffer_length, ch_names, fs)
+plotter_feat = NFBt.DataPlotter(n_win_test, feature_names,
                                 1 / shift_length)
 
 
@@ -124,19 +124,19 @@ try:
         ch_data = np.array(eeg_data)[:, index_channel]
 
         # Update EEG buffer
-        eeg_buffer, filter_state = NFBtool.update_buffer(eeg_buffer, ch_data, notch=True,
+        eeg_buffer, filter_state = NFBt.update_buffer(eeg_buffer, ch_data, notch=True,
                 filter_state=filter_state)
         
         
         """ 3.2 COMPUTE FEATURES """
             # Get newest samples from the buffer
-            data_epoch = NFBtool.get_last_data(eeg_buffer,
+            data_epoch = NFBt.get_last_data(eeg_buffer,
                                             epoch_length * fs)
 
             # Compute features
-            feat_vector = BCIw.compute_feature_vector(data_epoch, fs)
+            feat_vector = NFBt.compute_feature_vector(data_epoch, fs)
             
-            feat_buffer, _ = NFBtool.update_buffer(feat_buffer,
+            feat_buffer, _ = NFBt.update_buffer(feat_buffer,
                                                 np.asarray([feat_vector]))
 
             """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
