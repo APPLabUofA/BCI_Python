@@ -157,6 +157,7 @@ class DataPlotter():
         self.offsets = np.round((np.arange(self.nbCh)+0.5)*(self.chRange))
 
         # Create the figure and axis
+        %matplotlib qt # plots in their own window
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.ax.set_yticks(self.offsets)

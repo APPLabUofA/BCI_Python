@@ -35,7 +35,7 @@ if len(streams) == 0:
 print("Start acquiring data")
 inlet = StreamInlet(streams[0], max_chunklen=12) # create a new inlet to read from the stream
 eeg_time_correction = inlet.time_correction()
-
+print("Good job! Opening a EEG inlet...")
 
 # Get the stream info and description
 info = inlet.info()
@@ -69,7 +69,7 @@ buffer_length = 6  #15
 epoch_length = 0.4  #1
 
 # Amount of overlap between two consecutive epochs (in seconds)
-overlap_length = 0.2  #0.8
+overlap_length = 0.32  #0.8
 
 # Amount to 'shift' the start of each next consecutive epoch
 shift_length = epoch_length - overlap_length
@@ -96,23 +96,20 @@ eeg_buffer = np.zeros((int(fs * buffer_length), n_channels))
 filter_state = None  # for use with the notch filter
 
 # Compute the number of epochs in "buffer_length" (used for plotting)
-n_win_test = int(np.floor((buffer_length - epoch_length) /
-                          shift_length + 1))
+n_win_test = int(np.floor((buffer_length - epoch_length) / shift_length + 1))
 
 # Initialize the feature data buffer (for plotting)
 feat_buffer = np.zeros((n_win_test, len(feature_names)))
 
 # Initialize the plots
 plotter_eeg = NFBt.DataPlotter(fs * buffer_length, ch_names, fs)
-plotter_feat = NFBt.DataPlotter(n_win_test, feature_names,
-                                1 / shift_length)
+plotter_feat = NFBt.DataPlotter(n_win_test, feature_names, 1 / shift_length)
 
 
 #//////////////////////////////////////////////////////////////////////////////
 #//////////////////////////////////////////////////////////////////////////////
 """ 3. GET DATA """
 
-#------------------------------------------------------------------------------
 # The try/except structure allows to quit the while loop by aborting the script with <Ctrl-C>
 print('Press Ctrl-C in the console to break the while loop.')
 
@@ -143,8 +140,7 @@ try:
         # Compute features
         feat_vector = NFBt.compute_feature_vector(data_epoch, fs)
         
-        feat_buffer, _ = NFBt.update_buffer(feat_buffer,
-                                            np.asarray([feat_vector]))
+        feat_buffer, _ = NFBt.update_buffer(feat_buffer, np.asarray([feat_vector]))
 
         """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
         plotter_eeg.update_plot(eeg_buffer)
