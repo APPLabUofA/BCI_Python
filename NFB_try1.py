@@ -76,16 +76,18 @@ shift_length = epoch_length - overlap_length
 
 # Index of the channel (electrode) to be used
 # 0 = Oz, 3 = P3, 4 = C3, 5 = F3, 6 = Pz, 7 = Cz, 8 = Fz, 9 = P4, 10 = C4, 11 = F4,
-# 16 = HEOG, 17 = VEOG
-index_channel = [0, 6, 7, 8]
+# 15 = M2, 16 = HEOG, 17 = VEOG
+index_channel = [0, 6, 7, 8, 15, 16, 17]
 
 # Name of our channel for plotting purposes
 ch_names = [ch_names[i] for i in index_channel]
 n_channels = len(index_channel)
+n_chEEG = n_channels - 3 #excluding the EOGs & M2 - only brain electrodes
 
 # Get names of features
 # ex. ['delta - CH1', 'pwr-theta - CH1', 'pwr-alpha - CH1',...]
-feature_names = NFBt.get_feature_names(ch_names)
+feature_names = NFBt.get_feature_names(ch_names[0:n_chEEG]) #exclude EOGs & M2
+
 
 #//////////////////////////////////////////////////////////////////////////////
 #//////////////////////////////////////////////////////////////////////////////
@@ -137,8 +139,8 @@ try:
         # Get newest samples from the buffer
         data_epoch = NFBt.get_last_data(eeg_buffer, epoch_length * fs)
 
-        # Compute features
-        feat_vector = NFBt.compute_feature_vector(data_epoch, fs)
+        # Compute features of brain electrodes only
+        feat_vector = NFBt.compute_feature_vector(data_epoch[:,0:n_chEEG], fs)
         
         feat_buffer, _ = NFBt.update_buffer(feat_buffer, np.asarray([feat_vector]))
 

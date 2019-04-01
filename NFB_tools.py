@@ -19,6 +19,26 @@ from scipy.signal import butter, lfilter, lfilter_zi
 # Notch filter, but not sure what it is fitering
 NOTCH_B, NOTCH_A = butter(4, np.array([55, 65])/(256/2), btype='bandstop')
 
+#==============================================================================
+def GrattonEmcpRaw(raw):
+    """Gratton method to regress out EOG activity from brain data.
+    
+    Args:
+        raw (numpy.ndarray): array of dimension [number of samples,
+                number of channels]
+    
+    Returns:
+        raw_new (numpy.ndarray): feature matrix of shape [number of feature points,
+            number of different features]
+    """
+    raw_eeg = raw.copy().pick_types(eeg=True)[:][0]
+    raw_eog = raw.copy().pick_types(eog=True)[:][0]
+    b = np.linalg.solve(np.dot(raw_eog,raw_eog.T), np.dot(raw_eog,raw_eeg.T))
+    eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,b)).T
+    raw_new = raw.copy()
+    raw_new._data[pick_types(raw.info,eeg=True),:] = eeg_corrected
+    return raw_new
+
 
 #==============================================================================
 def nextpow2(i):
