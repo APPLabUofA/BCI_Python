@@ -19,6 +19,14 @@ from scipy.signal import butter, lfilter, lfilter_zi
 # Notch filter, but not sure what it is fitering
 NOTCH_B, NOTCH_A = butter(4, np.array([55, 65])/(256/2), btype='bandstop')
 
+
+#==============================================================================
+def mastoidReref(raw):
+  ref_idx = pick_channels(raw.info['ch_names'],['M2'])
+  eeg_idx = pick_types(raw.info,eeg=True)
+  raw._data[eeg_idx,:] =  raw._data[eeg_idx,:]  -  raw._data[ref_idx,:] * .5 ;
+  return raw
+
 #==============================================================================
 def GrattonEmcpRaw(raw):
     """Gratton method to regress out EOG activity from brain data.
