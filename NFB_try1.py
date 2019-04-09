@@ -104,7 +104,8 @@ n_win_test = int(np.floor((buffer_length - epoch_length) / shift_length + 1))
 feat_buffer = np.zeros((n_win_test, len(feature_names)))
 
 # Initialize the plots
-plotter_eeg = NFBt.DataPlotter(fs * buffer_length, ch_names, fs)
+#plotter_eeg = NFBt.DataPlotter(fs * buffer_length, ch_names, fs)
+plotter_eeg = NFBt.DataPlotter(int(np.multiply(fs,epoch_length)), ch_names, fs)
 plotter_feat = NFBt.DataPlotter(n_win_test, feature_names, 1 / shift_length)
 
 
@@ -138,14 +139,25 @@ try:
         """ 3.2 COMPUTE FEATURES """
         # Get newest samples from the buffer
         data_epoch = NFBt.get_last_data(eeg_buffer, epoch_length * fs)
+        
+        # 1 Hz high-pass filter
+        data_epoch = NFBt.remove_dc_offset(data_epoch, fs)
+        
+        # Re-reference to average of mastoids
+        data_epoch = NFBt.mastoid_Reref(ch_names, n_chEEG, data_epoch)
+        
+        # Correct for eyeblinks using regression method
+        data_epoch = NFBt.GrattonEmcpRaw(ch_names, n_chEEG, data_epoch)
 
         # Compute features of brain electrodes only
         feat_vector = NFBt.compute_feature_vector(data_epoch[:,0:n_chEEG], fs)
         
         feat_buffer, _ = NFBt.update_buffer(feat_buffer, np.asarray([feat_vector]))
 
+
         """ 3.3 VISUALIZE THE RAW EEG AND THE FEATURES """
-        plotter_eeg.update_plot(eeg_buffer)
+#        plotter_eeg.update_plot(eeg_buffer)
+        plotter_eeg.update_plot(data_epoch)
         plotter_feat.update_plot(feat_buffer)
         plt.pause(0.00001)
 

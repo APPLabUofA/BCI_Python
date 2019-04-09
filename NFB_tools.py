@@ -16,36 +16,66 @@ import numpy as np
 
 from scipy.signal import butter, lfilter, lfilter_zi
 
+from IPython import get_ipython
+
+
+
+
 # Notch filter, but not sure what it is fitering
 NOTCH_B, NOTCH_A = butter(4, np.array([55, 65])/(256/2), btype='bandstop')
 
 
 #==============================================================================
-def mastoidReref(raw):
-  ref_idx = pick_channels(raw.info['ch_names'],['M2'])
-  eeg_idx = pick_types(raw.info,eeg=True)
-  raw._data[eeg_idx,:] =  raw._data[eeg_idx,:]  -  raw._data[ref_idx,:] * .5 ;
-  return raw
+def remove_dc_offset(data_epoch, fs):
+       
+    hp_cutoff_Hz = 1.0
+
+    b, a = butter(2, hp_cutoff_Hz/(fs / 2.0), 'highpass')
+    data_epoch = lfilter(b, a, data_epoch, 0)
+    
+    return data_epoch
+        
+#==============================================================================
+def mastoid_Reref(ch_names, n_chEEG, data_epoch):
+   """Re-reference to average mastoid.
+    """ 
+   ref_idx = int(ch_names.index('M2'))
+   data_epoch_new = data_epoch
+        
+   for i in range(0, n_chEEG): 
+       data_epoch_new[:,i] =  data_epoch[:,i]  -  data_epoch[:,ref_idx] * .5  
+    
+   return data_epoch_new 
 
 #==============================================================================
-def GrattonEmcpRaw(raw):
-    """Gratton method to regress out EOG activity from brain data.
+def GrattonEmcpRaw(ch_names, n_chEEG, data_epoch):
+   """Gratton method to regress out EOG activity from brain data.
+       - needs to be applied separately for each EOG channel if want to correct
+         for both horizontal and vertical EOGs  
     
     Args:
-        raw (numpy.ndarray): array of dimension [number of samples,
+        n_chEEG: number of EEG channels
+        data_epoch (numpy.ndarray): array of dimension [number of samples,
                 number of channels]
     
     Returns:
-        raw_new (numpy.ndarray): feature matrix of shape [number of feature points,
+        data_epoch (numpy.ndarray): feature matrix of shape [number of feature points,
             number of different features]
     """
-    raw_eeg = raw.copy().pick_types(eeg=True)[:][0]
-    raw_eog = raw.copy().pick_types(eog=True)[:][0]
-    b = np.linalg.solve(np.dot(raw_eog,raw_eog.T), np.dot(raw_eog,raw_eeg.T))
-    eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,b)).T
-    raw_new = raw.copy()
-    raw_new._data[pick_types(raw.info,eeg=True),:] = eeg_corrected
-    return raw_new
+   raw_eeg = data_epoch[:,:n_chEEG] #get EEG data only
+   raw_eeg = raw_eeg.T
+#   eog_idx = [int(ch_names.index('HEOG')),int(ch_names.index('VEOG'))]
+   eog_idx = int(ch_names.index('VEOG')) #for eyeblink correction
+   raw_eog = np.zeros((data_epoch.shape[0],1)) #pre-allocate
+   raw_eog[:,0] = data_epoch[:,eog_idx]
+   raw_eog = raw_eog.T
+   
+   beta = np.linalg.solve(np.dot(raw_eog,raw_eog.T), np.dot(raw_eog,raw_eeg.T))
+   eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,beta)).T
+   
+   data_epoch[:,:n_chEEG] = eeg_corrected.T #replace w/corrected data
+    
+   return data_epoch
 
 
 #==============================================================================
@@ -87,16 +117,16 @@ def compute_feature_vector(eegdata, fs):
 
     # SPECTRAL FEATURES
     # Average of band powers
-    # Delta <4
+    # Delta <3
     ind_delta, = np.where(f < 3)
     meanDelta = np.mean(PSD[ind_delta, :], axis=0)
-    # Theta 4-8
+    # Theta 3-8
     ind_theta, = np.where((f >= 3) & (f <= 8))
     meanTheta = np.mean(PSD[ind_theta, :], axis=0)
-    # Alpha 8-12
+    # Alpha 8-14
     ind_alpha, = np.where((f >= 8) & (f <= 14))
     meanAlpha = np.mean(PSD[ind_alpha, :], axis=0)
-    # Beta 12-30
+    # Beta 14-30
     ind_beta, = np.where((f >= 14) & (f < 30))
     meanBeta = np.mean(PSD[ind_beta, :], axis=0)
 
@@ -185,7 +215,8 @@ class DataPlotter():
         self.offsets = np.round((np.arange(self.nbCh)+0.5)*(self.chRange))
 
         # Create the figure and axis
-        %matplotlib qt # plots in their own window
+#        %matplotlib qt # plots in their own window
+#        get_ipython().run_line_magic('matplotlib', 'qt5') # plots in their own window
         plt.ion()
         self.fig, self.ax = plt.subplots()
         self.ax.set_yticks(self.offsets)
