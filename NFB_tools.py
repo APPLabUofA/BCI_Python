@@ -5,6 +5,10 @@ Auxiliary Tools for Auditory NFB
 Created on Sat Mar 23 14:15:36 2019
 
 @author: ssshe
+
+
+Adapted from https://github.com/NeuroTechX/bci-workshop
+
 """
 
 # Most code comes from bci_workshop_tools
@@ -62,6 +66,8 @@ def GrattonEmcpRaw(ch_names, n_chEEG, data_epoch):
         data_epoch (numpy.ndarray): feature matrix of shape [number of feature points,
             number of different features]
     """
+   
+   # VEOG (eyeblink) correction
    raw_eeg = data_epoch[:,:n_chEEG] #get EEG data only
    raw_eeg = raw_eeg.T
 #   eog_idx = [int(ch_names.index('HEOG')),int(ch_names.index('VEOG'))]
@@ -69,12 +75,24 @@ def GrattonEmcpRaw(ch_names, n_chEEG, data_epoch):
    raw_eog = np.zeros((data_epoch.shape[0],1)) #pre-allocate
    raw_eog[:,0] = data_epoch[:,eog_idx]
    raw_eog = raw_eog.T
-   
+   # Calculate beta values
    beta = np.linalg.solve(np.dot(raw_eog,raw_eog.T), np.dot(raw_eog,raw_eeg.T))
    eeg_corrected = (raw_eeg.T - np.dot(raw_eog.T,beta)).T
-   
    data_epoch[:,:n_chEEG] = eeg_corrected.T #replace w/corrected data
+   
+   # HEOG (eye movemrny) correction
+   raw_eegH = data_epoch[:,:n_chEEG] #get EEG data only
+   raw_eegH = raw_eegH.T
+   eog_idxH = int(ch_names.index('HEOG')) #for eyeblink correction
+   raw_eogH = np.zeros((data_epoch.shape[0],1)) #pre-allocate
+   raw_eogH[:,0] = data_epoch[:,eog_idxH]
+   raw_eogH = raw_eogH.T
+   # Calculate beta values
+   betaH = np.linalg.solve(np.dot(raw_eogH,raw_eogH.T), np.dot(raw_eogH,raw_eegH.T))
+   eeg_correctedH = (raw_eegH.T - np.dot(raw_eogH.T,betaH)).T
+   data_epoch[:,:n_chEEG] = eeg_correctedH.T #replace w/corrected data
     
+   
    return data_epoch
 
 

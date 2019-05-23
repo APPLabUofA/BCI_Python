@@ -3,6 +3,9 @@
 @author: S3
 Created on Tue Mar  5 11:09:36 2019
 
+
+Adapted from https://github.com/NeuroTechX/bci-workshop
+
 """
 # Most code comes from bci_workshop
 
@@ -23,7 +26,7 @@ import NFB_tools as NFBt  # My own (kinda) functions for code
 #------------------------------------------------------------------------------
 #==============================================================================
 
-
+ 
 
 # first resolve an EEG stream on the lab network
 print("looking for an EEG stream...")
